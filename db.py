@@ -165,7 +165,15 @@ def delete_book(book_id):
     except sqlite3.Error as e:
         print(f"Error deleting book: {e}")
         return False
-
+    
+def get_review_by_id(review_id):
+    try:
+        cursor.execute("SELECT * FROM Reviews WHERE review_id = ?", (review_id,))
+        review = cursor.fetchone()
+        return review
+    except sqlite3.Error as e:
+        print(f"Error retrieving review: {e}")
+        return None
 
 conn.commit()
 # conn.close()
