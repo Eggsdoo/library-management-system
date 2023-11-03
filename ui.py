@@ -5,6 +5,7 @@ from db import (
     get_review_by_id, update_book_author, update_book_category
 )
 import textwrap
+from colorama import Fore, Style # for my text coloring
 
 conn = sqlite3.connect('library.db')
 cursor = conn.cursor()
@@ -12,18 +13,18 @@ cursor = conn.cursor()
 def view_categories():
     categories = get_categories()
     if not categories:
-        print("No categories found.")
+        print(Fore.RED + "No categories found." + Style.RESET_ALL)
     else:
-        print("Categories:")
+        print(Fore.CYAN + "Categories:" + Style.RESET_ALL)
         for category in categories:
             print(f"ID: {category[0]}, Category: {category[1]}")
-            print("=" * 100)
+            print("=" * 25)
     print()
 
 def view_all_books():
     books = get_all_books()
     if not books:
-        print("No books found.")
+        print(Fore.RED + "No books found." + Style.RESET_ALL)
     else:
         print("All Books:")
         print(f"{'ID':<4}{'Book':<40}{'Author':<20}{'Category':<15}{'Rating':<8}{'Review':<50}")
