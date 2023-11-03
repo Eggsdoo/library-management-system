@@ -1,7 +1,8 @@
 import sqlite3
 from db import (
     insert_category, update_book_title, delete_review, get_books_by_author,
-    add_book, add_author, add_review, get_categories, get_all_books, delete_book, get_review_by_id
+    add_book, add_author, add_review, get_categories, get_all_books, delete_book, 
+    get_review_by_id, update_book_author, update_book_category
 )
 import textwrap
 
@@ -16,6 +17,7 @@ def view_categories():
         print("Categories:")
         for category in categories:
             print(f"ID: {category[0]}, Category: {category[1]}")
+            print("=" * 100)
     print()
 
 def view_all_books():
@@ -25,6 +27,7 @@ def view_all_books():
     else:
         print("All Books:")
         print(f"{'ID':<4}{'Book':<40}{'Author':<20}{'Category':<15}{'Rating':<8}{'Review':<50}")
+        print("=" * 100)
         for book in books:
             book_id = book[0]
             book_title = book[1] if book[1] else "N/A"
@@ -37,6 +40,7 @@ def view_all_books():
             wrapped_title = textwrap.fill(book_title, width=40)
 
             print(f"{book_id:<4}{wrapped_title:<40}{author_name:<20}{category_name:<15}{rating:<8}{review:<50}")
+            print("=" * 100)
     print()
 
 def capitalize_words(text):
@@ -66,13 +70,14 @@ def main_menu():
         print("2. Add Author")
         print("3. Add Category")
         print("4. Add Review")
-        print("5. Update Book Title")
+        print("5. Update Book")
         print("6. Delete Review")
         print("7. Delete Book")
         print("8. Search Books by Author")
-        print("9. View All Books")
-        print("10. View Categories")
-        print("11. Exit")
+        print("9. Search Books by Category")
+        print("10. View All Books")
+        print("11. View Categories")
+        print("12. Exit")
 
         choice = input("Enter your choice: ")
 
@@ -154,12 +159,42 @@ def main_menu():
                 print("Error: Failed to add the review.")
 
         elif choice == "5":
-            book_id = int(input("Enter the book ID: "))
-            new_title = input("Enter the new title: ")
-            new_title = capitalize_words(new_title)
+            book_name = input("Enter the book name: ")
+            book_name = capitalize_words(book_name)
+            books = [book for book in get_all_books() if book[1] == book_name]
+            if not books:
+                print(f"Error: No book found with the name '{book_name}'.")
+                continue
 
-            update_book_title(book_id, new_title)
-            print("Book title updated successfully.")
+            # Display book details and confirm with the user
+            for book in books:
+                book_id, book_title, author_name, category_name = book[0], book[1], book[2], book[3]
+                print(f"Book ID: {book_id}")
+                print(f"Book Name: {book_title}")
+                print(f"Author: {author_name}")
+                print(f"Category: {category_name}")
+                confirm = input("Is this the correct book? (y/n): ").strip().lower()
+                if confirm == 'y':
+                    break
+                elif confirm == 'n':
+                    continue
+                else:
+                    print("Invalid input. Please enter 'y' or 'n'.")
+
+            # Allow the user to update book details
+            if confirm == 'y':
+                new_title = input("Enter a new title: ")
+                new_author_name = input("Enter a new author name: ")
+                new_category_id = int(input("Enter a new category ID: "))
+                if new_category_id not in existing_category_ids:
+                    print("Error: Invalid category ID.")
+                    continue
+
+                # Update the book details
+                update_book_title(book_id, new_title)
+                update_book_author(book_id, new_author_name)
+                update_book_category(book_id, new_category_id)
+                print("Book details updated successfully.")
 
         elif choice == "6":
             review_id = int(input("Enter the review ID: "))
@@ -201,14 +236,51 @@ def main_menu():
             books = get_books_by_author(author_name)
             for book in books:
                 print(f"Book ID: {book[0]}, Title: {book[1]}")
-
+       
         elif choice == "9":
-            view_all_books()
+            view_categories()
+            while True:
+                category_id = input("Enter a Category ID: ")
+                try:
+                    category_id = int(category_id)
+                    existing_categories = get_categories()
+                    existing_category_ids = [category[0] for category in existing_categories]
+
+                    if category_id in existing_category_ids:
+                        break  # Exit the loop if the category is valid
+                    else:
+                        print("Error: Invalid category ID. Please try again.")
+                except ValueError:
+                    print("Error: Please enter a valid numeric category ID.")
+
+            # Display books in the selected category
+            books_in_category = [book for book in get_all_books(category_id)]
+            category_name = next((cat[1] for cat in existing_categories if cat[0] == category_id), "N/A")
+
+            if not books_in_category:
+                print(f"No books found in '{category_name}'.")
+            else:
+                print(f"Books in '{category_name}':")
+                print(f"{'ID':<4}{'Book':<40}{'Author':<20}{'Rating':<8}{'Review':<50}")
+                print("=" * 100)  
+                for book in books_in_category:
+                    book_id = book[0]
+                    book_title = book[1] if book[1] else "N/A"
+                    author_name = book[2] if book[2] else "N/A"
+                    rating = book[4] if book[4] is not None else "N/A"
+                    review = book[5] if book[5] else "N/A"
+                    wrapped_title = textwrap.fill(book_title, width=40)
+                    print(f"{book_id:<4}{wrapped_title:<40}{author_name:<20}{rating:<8}{review:<50}")
+                print("=" * 100)  
+                print()
 
         elif choice == "10":
-            view_categories()
+            view_all_books()
 
         elif choice == "11":
+            view_categories()
+
+        elif choice == "12":
             break
 
         else:

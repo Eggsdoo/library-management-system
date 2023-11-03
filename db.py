@@ -148,14 +148,31 @@ def get_categories():
     return categories
 
 # Function to retrieve all books with details (including category name)
-def get_all_books():
-    cursor.execute('''SELECT Books.book_id, Books.title, Authors.author_name, Categories.category_name, Reviews.rating, Reviews.review_text
-                    FROM Books
-                    LEFT JOIN Authors ON Books.author_id = Authors.author_id
-                    LEFT JOIN Categories ON Books.category_id = Categories.category_id
-                    LEFT JOIN Reviews ON Books.book_id = Reviews.book_id''')
+def get_all_books(category_id=None):
+    if category_id is not None:
+        cursor.execute('''SELECT Books.book_id, Books.title, Authors.author_name, Categories.category_name, Reviews.rating, Reviews.review_text
+                        FROM Books
+                        LEFT JOIN Authors ON Books.author_id = Authors.author_id
+                        LEFT JOIN Categories ON Books.category_id = Categories.category_id
+                        LEFT JOIN Reviews ON Books.book_id = Reviews.book_id
+                        WHERE Books.category_id = ?''', (category_id,))
+    else:
+        cursor.execute('''SELECT Books.book_id, Books.title, Authors.author_name, Categories.category_name, Reviews.rating, Reviews.review_text
+                        FROM Books
+                        LEFT JOIN Authors ON Books.author_id = Authors.author_id
+                        LEFT JOIN Categories ON Books.category_id = Categories.category_id
+                        LEFT JOIN Reviews ON Books.book_id = Reviews.book_id''')
     books = cursor.fetchall()
     return books
+
+# def get_all_books():
+#     cursor.execute('''SELECT Books.book_id, Books.title, Authors.author_name, Categories.category_name, Reviews.rating, Reviews.review_text
+#                     FROM Books
+#                     LEFT JOIN Authors ON Books.author_id = Authors.author_id
+#                     LEFT JOIN Categories ON Books.category_id = Categories.category_id
+#                     LEFT JOIN Reviews ON Books.book_id = Reviews.book_id''')
+#     books = cursor.fetchall()
+#     return books
 
 def delete_book(book_id):
     try:
@@ -174,6 +191,34 @@ def get_review_by_id(review_id):
     except sqlite3.Error as e:
         print(f"Error retrieving review: {e}")
         return None
+    
+# Function to update the author of a book
+def update_book_author(book_id, new_author_name):
+    try:
+        # Check if the author with the same name already exists
+        cursor.execute("SELECT author_id FROM Authors WHERE author_name = ?", (new_author_name,))
+        existing_author = cursor.fetchone()
+
+        if existing_author:
+            author_id = existing_author[0]  # Use the existing author's ID
+        else:
+            # Author does not exist, insert the new author
+            cursor.execute("INSERT INTO Authors (author_name) VALUES (?)", (new_author_name,))
+            conn.commit()
+            author_id = cursor.lastrowid  # Retrieve the ID of the newly inserted author
+
+        cursor.execute("UPDATE Books SET author_id = ? WHERE book_id = ?", (author_id, book_id))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Error updating book author: {e}")
+
+# Function to update the category of a book
+def update_book_category(book_id, new_category_id):
+    try:
+        cursor.execute("UPDATE Books SET category_id = ? WHERE book_id = ?", (new_category_id, book_id))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Error updating book category: {e}")
 
 conn.commit()
 # conn.close()
