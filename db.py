@@ -82,22 +82,27 @@ def get_books_by_author(author_name):
         return []
 
 # Function to add a new book
-def add_book(title, author_id, category_id):
+def add_book(title, author_name, category_id):
     try:
-        # Check if the book with the same title and author_id already exists
-        cursor.execute("SELECT book_id FROM Books WHERE title = ? AND author_id = ?", (title, author_id))
+        # Check if the book with the same title, author name, and category already exists
+        cursor.execute("SELECT book_id FROM Books WHERE title = ? AND author_id IN (SELECT author_id FROM Authors WHERE author_name = ?) AND category_id = ?",
+                       (title, author_name, category_id))
         existing_book = cursor.fetchone()
-        
+
         if existing_book:
-            return "A book with the same title and author already exists."
+            return -1  # Return a negative value to indicate an error
 
-        # Check if the category_id exists in Categories
-        cursor.execute("SELECT category_id FROM Categories WHERE category_id = ?", (category_id,))
-        existing_category = cursor.fetchone()
+        # Check if the author with the same name already exists
+        cursor.execute("SELECT author_id FROM Authors WHERE author_name = ?", (author_name,))
+        existing_author = cursor.fetchone()
 
-        if not existing_category:
-            category_info = get_categories()  # Retrieve available categories
-            return "Category with the given ID does not exist. Available categories: " + ", ".join(c[1] for c in category_info)
+        if existing_author:
+            author_id = existing_author[0]  # Use the existing author's ID
+        else:
+            # Author does not exist, insert the new author
+            cursor.execute("INSERT INTO Authors (author_name) VALUES (?)", (author_name,))
+            conn.commit()
+            author_id = cursor.lastrowid  # Retrieve the ID of the newly inserted author
 
         cursor.execute("INSERT INTO Books (title, author_id, category_id) VALUES (?, ?, ?)",
                        (title, author_id, category_id))
@@ -105,7 +110,7 @@ def add_book(title, author_id, category_id):
         return cursor.lastrowid  # Return the ID of the newly inserted book
     except sqlite3.Error as e:
         print(f"Error adding book: {e}")
-        return None
+        return -1  # Return a negative value to indicate an error
 
 # Function to add a new author
 def add_author(author_name):
@@ -151,6 +156,16 @@ def get_all_books():
                     LEFT JOIN Reviews ON Books.book_id = Reviews.book_id''')
     books = cursor.fetchall()
     return books
+
+def delete_book(book_id):
+    try:
+        cursor.execute("DELETE FROM Books WHERE book_id = ?", (book_id,))
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Error deleting book: {e}")
+        return False
+
 
 conn.commit()
 # conn.close()
